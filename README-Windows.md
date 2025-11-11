@@ -12,10 +12,6 @@ It is designed for **partners and customers** who want to:
 
 This setup is lightweight, reproducible, and ideal for experimentation, demonstrations, and integration validation.
 
-⚠️ This example is based and tested with Fedora 43 with SELinux.
-* If you are not using SELinux, please remove :Z from the volume.
-* If you are using Windows, please use the Windows based [instructions](README-Windows.md).
-
 ---
 
 ## 🧩 Prerequisites
@@ -132,10 +128,10 @@ podman run --rm --entrypoint id quay.io/airlock/iam:8.5.0
 
 Then create the data folders and assign the correct permissions:
 
-```bash
-mkdir -p ~/ContainerDataFolder/mariadb ~/ContainerDataFolder/iam
-podman unshare chown -R 999:999 ~/ContainerDataFolder/mariadb
-podman unshare chown -R 1000:0 ~/ContainerDataFolder/iam
+```powershell
+New-Item -Path "C:\" -Name "ContainerDataFolder" -ItemType Directory
+New-Item -Path "C:\ContainerDataFolder\" -Name "mariadb" -ItemType Directory
+New-Item -Path "C:\ContainerDataFolder\" -Name "iam" -ItemType Directory
 ```
 
 ---
@@ -143,7 +139,7 @@ podman unshare chown -R 1000:0 ~/ContainerDataFolder/iam
 ### 3. Create the MariaDB Container
 
 ```bash
-podman create   --name mariadb   --pod iam   -e MARIADB_ROOT_PASSWORD="ND+w\Y2CWvW}>gn-s)H_"   -v ~/ContainerDataFolder/mariadb:/var/lib/mysql:Z   docker.io/library/mariadb:11.8.3-ubi
+podman create   --name mariadb   --pod iam   -e MARIADB_ROOT_PASSWORD="ND+w\Y2CWvW}>gn-s)H_"   -v C:\ContainerDataFolder\mariadb:/var/lib/mysql   docker.io/library/mariadb:11.8.3-ubi
 ```
 
 ---
@@ -151,7 +147,7 @@ podman create   --name mariadb   --pod iam   -e MARIADB_ROOT_PASSWORD="ND+w\Y2CW
 ### 4. Create the IAM Container
 
 ```bash
-podman create   --name airlock-iam   --pod iam   --memory 4g   -e IAM_MODULES=adminapp   -e TZ=Europe/Berlin   -e IAM_JAVA_OPTS='-XX:MaxRAMPercentage=50'   -v ~/ContainerDataFolder/iam:/home/airlock/iam:Z   quay.io/airlock/iam:8.5.0   run -i auth
+podman create   --name airlock-iam   --pod iam   --memory 4g   -e IAM_MODULES=adminapp   -e TZ=Europe/Berlin   -e IAM_JAVA_OPTS='-XX:MaxRAMPercentage=50'   -v C:\ContainerDataFolder\iam:/home/airlock/iam   quay.io/airlock/iam:8.5.0   run -i auth
 ```
 
 ---
@@ -159,7 +155,7 @@ podman create   --name airlock-iam   --pod iam   --memory 4g   -e IAM_MODULES=ad
 ### 5. Initialize the IAM Instance
 
 ```bash
-podman run   --rm   -v ~/ContainerDataFolder/iam:/home/airlock/iam:Z   quay.io/airlock/iam:8.5.0   init --instance auth --analytics LICENSE_DATA
+podman run   --rm   -v C:\ContainerDataFolder\iam:/home/airlock/iam   quay.io/airlock/iam:8.5.0   init --instance auth --analytics LICENSE_DATA
 ```
 
 ---
@@ -176,12 +172,49 @@ podman pod start iam
 
 ### 1. Download the Latest MariaDB Connector
 
-```bash
-LATEST=$(curl -fsSL https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/maven-metadata.xml   | grep -Po '(?<=<release>)[^<]+')
+```powershell
+# Always use modern TLS settings (only needed for Windows PowerShell 5.1)
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-curl -fLO "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${LATEST}/mariadb-java-client-${LATEST}.jar"
+$metaUrl = "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/maven-metadata.xml"
+# Fetch and parse the XML metadata
+[xml]$xml = (Invoke-WebRequest -Uri $metaUrl -UseBasicParsing).Content
 
-curl -fsSL "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${LATEST}/mariadb-java-client-${LATEST}.jar.sha256"   | awk -v f="mariadb-java-client-${LATEST}.jar" '{print $1"  "f}'   | sha256sum -c -
+# Determine version: release -> latest -> last <version>
+$LATEST = $xml.metadata.versioning.release
+if (-not $LATEST -or [string]::IsNullOrWhiteSpace($LATEST)) { $LATEST = $xml.metadata.versioning.latest }
+if (-not $LATEST -or [string]::IsNullOrWhiteSpace($LATEST)) { 
+    $versions = @($xml.metadata.versioning.versions.version)
+    if ($versions.Count -eq 0) { throw "No versions found in the Maven metadata XML." }
+    $LATEST = $versions[-1]   # Usually already sorted; otherwise, sort here
+}
+
+$base = "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/$LATEST"
+$jarName = "mariadb-java-client-$LATEST.jar"
+$jarUrl  = "$base/$jarName"
+$shaUrl  = "$jarUrl.sha256"
+
+Write-Host "Latest version: $LATEST"
+Write-Host "Downloading $jarUrl ..."
+
+Invoke-WebRequest -Uri $jarUrl -OutFile $jarName -UseBasicParsing
+
+Write-Host "Downloading checksum $shaUrl ..."
+$sha256ExpectedRaw = (Invoke-WebRequest -Uri $shaUrl -UseBasicParsing).Content.Trim()
+
+# If the .sha256 file contains "HASH  FILENAME", only take the first token
+$sha256Expected = ($sha256ExpectedRaw -split '\s+')[0].ToLower()
+
+$sha256Actual = (Get-FileHash -Path $jarName -Algorithm SHA256).Hash.ToLower()
+
+if ($sha256Expected -eq $sha256Actual) {
+    Write-Host "✅ Checksum OK: $sha256Actual"
+} else {
+    Write-Warning "❌ Checksum INVALID!"
+    Write-Host  "Expected: $sha256ExpectedRaw"
+    Write-Host  "Actual:   $sha256Actual"
+    throw "Checksum mismatch for $jarName"
+}
 ```
 
 ---
@@ -189,7 +222,7 @@ curl -fsSL "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/
 ### 2. Copy the Connector to the IAM Instance
 
 ```bash
-podman cp mariadb-java-client-*.jar airlock-iam:instances/common/libs/
+podman cp mariadb-java-client-$LATEST.jar airlock-iam:instances/common/libs/
 ```
 
 ---
@@ -214,14 +247,14 @@ podman restart mariadb
 
 ### 4. Apply the Medusa Table Schema
 
-```bash
-podman exec -e MYSQL_PWD="123456" -i mariadb   mariadb -u airlockiam airlockiam < ressources/create-medusa-schema.sql
+```powershell
+Get-Content "ressources/create-medusa-schema.sql" | podman exec -e MYSQL_PWD="123456" -i mariadb mariadb -u airlockiam airlockiam
 ```
 
 ### 5. Create the IAM Default Admin
 
-```bash
-podman exec -e MYSQL_PWD="123456" -i mariadb   mariadb -u airlockiam airlockiam < ressources/insert-admin.sql
+```powershell
+Get-Content "ressources/insert-admin.sql" | podman exec -e MYSQL_PWD="123456" -i mariadb mariadb -u airlockiam airlockiam
 ```
 
 ---
