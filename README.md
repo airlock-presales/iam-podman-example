@@ -13,6 +13,7 @@ It is designed for **partners and customers** who want to:
 This setup is lightweight, reproducible, and ideal for experimentation, demonstrations, and integration validation.
 
 ⚠️ This example is based and tested with Fedora 43 with SELinux.
+
 * If you are not using SELinux, please remove :Z from the volume.
 * If you are using Windows, please use the Windows based [instructions](README-Windows.md).
 
@@ -174,14 +175,17 @@ podman pod start iam
 
 ## ⚙️ Database Preparation
 
-### 1. Download the Latest MariaDB Connector
+### 1. Download the Latest MariaDB Connector and copy it to the IAM Instance
 
 ```bash
-LATEST=$(curl -fsSL https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/maven-metadata.xml   | grep -Po '(?<=<release>)[^<]+')
+LATEST=$(curl -fsSL https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/maven-metadata.xml \
+  | grep -Po '(?<=<release>)[^<]+')
+curl -fLo ressources/mariadb-java-client-${LATEST}.jar "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${LATEST}/mariadb-java-client-${LATEST}.jar"
+curl -fsSL "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${LATEST}/mariadb-java-client-${LATEST}.jar.sha256" \
+  | awk -v f="ressources/mariadb-java-client-${LATEST}.jar" '{print $1"  "f}' \
+  | sha256sum -c -
 
-curl -fLO "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${LATEST}/mariadb-java-client-${LATEST}.jar"
-
-curl -fsSL "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${LATEST}/mariadb-java-client-${LATEST}.jar.sha256"   | awk -v f="mariadb-java-client-${LATEST}.jar" '{print $1"  "f}'   | sha256sum -c -
+podman cp mariadb-java-client-$LATEST.jar airlock-iam:instances/common/libs/
 ```
 
 ---
@@ -215,12 +219,14 @@ podman restart mariadb
 ### 4. Apply the Medusa Table Schema
 
 ```bash
+curl -fLo ressources/create-medusa-schema.sql https://docs.airlock.com/iam/latest/sql-scripts/schema/mariadb/create-medusa-schema.sql
 podman exec -e MYSQL_PWD="123456" -i mariadb   mariadb -u airlockiam airlockiam < ressources/create-medusa-schema.sql
 ```
 
 ### 5. Create the IAM Default Admin
 
 ```bash
+curl -fLo ressources/insert-admin.sql  https://docs.airlock.com/iam/latest/sql-scripts/schema/mariadb/insert-admin.sql
 podman exec -e MYSQL_PWD="123456" -i mariadb   mariadb -u airlockiam airlockiam < ressources/insert-admin.sql
 ```
 
