@@ -185,7 +185,7 @@ curl -fsSL "https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/
   | awk -v f="ressources/mariadb-java-client-${LATEST}.jar" '{print $1"  "f}' \
   | sha256sum -c -
 
-podman cp mariadb-java-client-$LATEST.jar airlock-iam:instances/common/libs/
+podman cp ressources/mariadb-java-client-$LATEST.jar airlock-iam:instances/common/libs/
 ```
 
 ---
