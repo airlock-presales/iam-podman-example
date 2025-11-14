@@ -264,7 +264,7 @@ podman exec -e MYSQL_PWD=123456 -it mariadb   mariadb -u airlockiam -D airlockia
 ### 7. Verify the Admin User
 
 ```bash
-podman exec -e MYSQL_PWD=123456 -it mariadb   mysql -u airlockiam -D airlockiam   -e "SELECT username, givenname, surname, roles, pwd_chg_enf FROM medusa_admin WHERE username='admin';"
+podman exec -e MYSQL_PWD=123456 -it mariadb   mariadb -u airlockiam -D airlockiam   -e "SELECT username, givenname, surname, roles, pwd_chg_enf FROM medusa_admin WHERE username='admin';"
 ```
 
 ---

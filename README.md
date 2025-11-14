@@ -132,7 +132,12 @@ podman unshare chown -R 1000:0 ~/ContainerDataFolder/iam
 ### 3. Create MariaDB Container
 
 ```bash
-podman create   --name mariadb   --pod iam   -e MARIADB_ROOT_PASSWORD="ND+w\Y2CWvW}>gn-s)H_"   -v ~/ContainerDataFolder/mariadb:/var/lib/mysql:Z   docker.io/library/mariadb:11.8.3-ubi
+podman create   \
+  --name mariadb   \
+  --pod iam   \
+  -e MARIADB_ROOT_PASSWORD="ND+w\Y2CWvW}>gn-s)H_"   \
+  -v ~/ContainerDataFolder/mariadb:/var/lib/mysql:Z   \
+  docker.io/library/mariadb:11.8.3-ubi
 ```
 
 ---
@@ -140,7 +145,20 @@ podman create   --name mariadb   --pod iam   -e MARIADB_ROOT_PASSWORD="ND+w\Y2CW
 ### 4. Create IAM Container
 
 ```bash
-podman create   --name airlock-iam   --pod iam   --memory 4g   -e IAM_DB_DRIVER_CLASS=org.mariadb.jdbc.Driver   -e IAM_DB_URL=jdbc:mariadb://localhost:3306/airlockiam   -e IAM_DB_USER=airlockiam   -e IAM_DB_PASSWORD=123456   -e IAM_MODULES=adminapp   -e TZ=Europe/Berlin   -e IAM_JAVA_OPTS='-XX:MaxRAMPercentage=50'   -v ~/ContainerDataFolder/iam:/home/airlock/iam:Z   quay.io/airlock/iam:8.5.0   run -i auth
+podman create   \
+  --name airlock-iam   \
+  --pod iam   \
+  --memory 4g   \
+  -e IAM_DB_DRIVER_CLASS=org.mariadb.jdbc.Driver   \
+  -e IAM_DB_URL=jdbc:mariadb://localhost:3306/airlockiam   \
+  -e IAM_DB_USER=airlockiam   \
+  -e IAM_DB_PASSWORD=123456   \
+  -e IAM_MODULES=adminapp   \
+  -e TZ=Europe/Berlin   \
+  -e IAM_JAVA_OPTS='-XX:MaxRAMPercentage=50'   \
+  -v ~/ContainerDataFolder/iam:/home/airlock/iam:Z   \
+  quay.io/airlock/iam:8.5.0   \
+  run -i auth
 ```
 
 ---
@@ -148,7 +166,11 @@ podman create   --name airlock-iam   --pod iam   --memory 4g   -e IAM_DB_DRIVER_
 ### 5. Initialize IAM
 
 ```bash
-podman run   --rm   -v ~/ContainerDataFolder/iam:/home/airlock/iam:Z   quay.io/airlock/iam:8.5.0   init --instance auth --analytics LICENSE_DATA
+podman run   \
+  --rm   \
+  -v ~/ContainerDataFolder/iam:/home/airlock/iam:Z   \
+  quay.io/airlock/iam:8.5.0   \
+  init --instance auth --analytics LICENSE_DATA
 ```
 
 ---
@@ -232,7 +254,7 @@ podman exec -e MYSQL_PWD=123456 -it mariadb   mariadb -u airlockiam -D airlockia
 ### 6. Validate Admin User
 
 ```bash
-podman exec -e MYSQL_PWD=123456 -it mariadb   mysql -u airlockiam -D airlockiam -e "SELECT username, givenname, surname, roles, pwd_chg_enf FROM medusa_admin WHERE username='admin';"
+podman exec -e MYSQL_PWD=123456 -it mariadb   mariadb -u airlockiam -D airlockiam -e "SELECT username, givenname, surname, roles, pwd_chg_enf FROM medusa_admin WHERE username='admin';"
 ```
 
 ---
