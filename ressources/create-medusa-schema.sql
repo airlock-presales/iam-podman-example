@@ -454,8 +454,9 @@ CREATE UNIQUE INDEX oauth2_translation_idx_unique
 
 CREATE TABLE oauth2_session
 (
-    pk BIGINT                                       NOT NULL AUTO_INCREMENT,
-    id VARCHAR(40) COLLATE utf8mb4_general_nopad_ci NOT NULL,
+    pk     BIGINT                                NOT NULL AUTO_INCREMENT,
+    id     VARCHAR(40) COLLATE utf8mb4_nopad_bin NOT NULL,
+    claims TEXT COLLATE utf8mb4_general_nopad_ci,
 
     CONSTRAINT pk_oauth2_session PRIMARY KEY (pk)
 ) CHARACTER SET utf8mb4
@@ -650,7 +651,8 @@ CREATE TABLE fido_credential
     first_used_at                 BIGINT,
     last_used_at                  BIGINT,
     total_usages                  INTEGER DEFAULT 0                             NOT NULL,
-    locked                        TINYINT                                       NOT NULL
+    locked                        TINYINT                                       NOT NULL,
+    transports                    VARCHAR(200) COLLATE utf8mb4_nopad_bin
 ) CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_520_nopad_ci;
 -- FOREIGN KEY indexes
@@ -769,7 +771,8 @@ CREATE TABLE accepted_sso_tickets
     ticket_id  VARCHAR(100) COLLATE utf8mb4_nopad_bin NOT NULL,
     expires_at BIGINT                                 NOT NULL,
     tenant_id  VARCHAR(50) COLLATE utf8mb4_nopad_bin  NOT NULL
-);
+) CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_520_nopad_ci;
 -- Additional indexes
 CREATE UNIQUE INDEX ux_accepted_sso_tickets ON accepted_sso_tickets (ticket_id, tenant_id);
 CREATE INDEX ix_accepted_sso_tickets_expires_at ON accepted_sso_tickets (expires_at);
@@ -787,8 +790,31 @@ CREATE TABLE oauth2_consent
 ) CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_520_nopad_ci;
 -- Additional indexes
-CREATE UNIQUE INDEX ux_oauth2_consent_id
-    ON oauth2_consent (id);
+CREATE UNIQUE INDEX ux_oauth2_consent_id ON oauth2_consent (id);
+CREATE INDEX ix_oauth2_consent_user_as_client ON oauth2_consent (user_id, authorization_server_id, client_id);
 
-CREATE INDEX ix_oauth2_consent_user_as_client
-    ON oauth2_consent (user_id, authorization_server_id, client_id);
+CREATE TABLE oauth2_par_request
+(
+    request_uri_reference   VARCHAR(50) COLLATE utf8mb4_nopad_bin NOT NULL,
+    authorization_server_id VARCHAR(50) COLLATE utf8mb4_nopad_bin NOT NULL,
+    client_id               VARCHAR(50) COLLATE utf8mb4_nopad_bin NOT NULL,
+    query_string            TEXT COLLATE utf8mb4_general_nopad_ci NOT NULL,
+    valid_until             BIGINT                                NOT NULL,
+    tenant_id               VARCHAR(50) COLLATE utf8mb4_nopad_bin NOT NULL
+) CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_520_nopad_ci;
+-- Additional indexes
+CREATE UNIQUE INDEX ux_oauth2_par_request_uri ON oauth2_par_request (request_uri_reference);
+CREATE INDEX ix_oauth2_par_request_valid_until ON oauth2_par_request (valid_until ASC);
+
+
+CREATE TABLE oauth2_accepted_client_assertions
+(
+    jti        VARCHAR(100) COLLATE utf8mb4_nopad_bin NOT NULL,
+    expires_at BIGINT                                 NOT NULL,
+    tenant_id  VARCHAR(50) COLLATE utf8mb4_nopad_bin  NOT NULL
+) CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_520_nopad_ci;
+-- Additional indexes
+CREATE UNIQUE INDEX ux_oauth2_accepted_client_assertions ON oauth2_accepted_client_assertions (jti);
+CREATE INDEX ix_oauth2_accepted_client_assertions_expires_at ON oauth2_accepted_client_assertions (expires_at ASC);

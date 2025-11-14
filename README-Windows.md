@@ -30,12 +30,12 @@ This approach simplifies deployment, testing, and upgrades — making it ideal f
 
 ### 🚀 Lightweight and Resource-Efficient
 
-| Component | vRAM | Storage Volume |
-|------------|-------------|----------------|
-| MariaDB | ~108 MB | ~175 MB |
-| IAM | ~1.06 GB | ~4 MB |
+| Component | Memory Usage | Disk Usage | Startup |
+|----------|--------------|------------|------------|
+| MariaDB  | ~108 MB      | ~175 MB    | ~3 sec    |
+| IAM      | ~1.06 GB     | ~4 MB      | ~8 sec    |
 
-An equivalent setup in a virtual machine typically requires **4–8 GB of memory** and at least **40 GB of virtual disk space**.
+A comparable VM setup often requires **4–8 GB of RAM**, **40+ GB disk space** and takes **1min 15sec** to start.
 
 **Benefits:**
 
@@ -111,22 +111,12 @@ podman login -u='your-quay-user' -p='your-encrypted-password' quay.io
 ### 1. Create a Pod for IAM
 
 ```bash
-podman pod create   --name iam   -p 8443:8443
-  # -p 3306:3306 # Optional: expose MariaDB externally
+podman pod create   --name iam   -p 8443:8443   -p 3306:3306
 ```
 
 ---
 
-### 2. Prepare Folders and Permissions
-
-Determine the **User IDs** for MariaDB and IAM:
-
-```bash
-podman run --rm --entrypoint id docker.io/library/mariadb:11.8.3-ubi
-podman run --rm --entrypoint id quay.io/airlock/iam:8.5.0
-```
-
-Then create the data folders and assign the correct permissions:
+### 2. Prepare Folders
 
 ```powershell
 New-Item -Path "C:\" -Name "ContainerDataFolder" -ItemType Directory
@@ -147,7 +137,7 @@ podman create   --name mariadb   --pod iam   -e MARIADB_ROOT_PASSWORD="ND+w\Y2CW
 ### 4. Create the IAM Container
 
 ```bash
-podman create   --name airlock-iam   --pod iam   --memory 4g   -e IAM_MODULES=adminapp   -e TZ=Europe/Berlin   -e IAM_JAVA_OPTS='-XX:MaxRAMPercentage=50'   -v C:\ContainerDataFolder\iam:/home/airlock/iam   quay.io/airlock/iam:8.5.0   run -i auth
+podman create   --name airlock-iam   --pod iam   --memory 4g   -e IAM_DB_DRIVER_CLASS=org.mariadb.jdbc.Driver   -e IAM_DB_URL=jdbc:mariadb://localhost:3306/airlockiam   -e IAM_DB_USER=airlockiam   -e IAM_DB_PASSWORD=123456 -e IAM_MODULES=adminapp   -e TZ=Europe/Berlin   -e IAM_JAVA_OPTS='-XX:MaxRAMPercentage=50'   -v C:\ContainerDataFolder\iam:/home/airlock/iam   quay.io/airlock/iam:8.5.0   run -i auth
 ```
 
 ---
@@ -168,7 +158,7 @@ podman pod start iam
 
 ---
 
-## ⚙️ Database Preparation
+## 🛢️ Database Preparation
 
 ### 1. Download the Latest MariaDB Connector
 
@@ -225,6 +215,12 @@ if ($sha256Expected -eq $sha256Actual) {
 podman cp mariadb-java-client-$LATEST.jar airlock-iam:instances/common/libs/
 ```
 
+Restart the IAM to load with MariaDB connector
+
+```bash
+podman restart airlock-iam
+```
+
 ---
 
 ### 3. Prepare the Database Schema and User
@@ -273,9 +269,26 @@ podman exec -e MYSQL_PWD=123456 -it mariadb   mysql -u airlockiam -D airlockiam 
 
 ---
 
-## 🚀 Login and Start Configuration
+## 🚀 Access IAM Admin UI
 
-Access the IAM Admin UI:  
-[https://127.0.0.1:8443/auth-admin](https://127.0.0.1:8443/auth-admin)
+Open:  
+https://127.0.0.1:8443/auth-admin
 
-> Note: As the database is not yet connected, you can log in with **any username** and **any password** — authentication is not yet validated.
+Since the DB is not yet connected, any username/password will work at first.
+
+### Activate IAM
+
+1. Enter valid license
+2. Navigate to **⚙️ Configuration**
+3. Click **New** to open the ConfigManager
+4. Select **Start Configuration → Use Selected Template**
+5. Click **Activate**
+
+After activation and login, you will be prompted to change the admin password.
+
+**Default credentials:**  
+`admin / password`
+
+---
+
+# 🎉 Congratulations — Your IAM + MariaDB Environment Is Ready!
