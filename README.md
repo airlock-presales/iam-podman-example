@@ -226,7 +226,7 @@ podman restart mariadb
 ### 3. Apply Medusa Schema
 
 ```bash
-curl -fLo ressources/create-medusa-schema.sql   https://docs.airlock.com/iam/latest/sql-scripts/schema/mariadb/create-medusa-schema.sql
+curl -fLo ressources/create-medusa-schema.sql -b cookies -c cookies  https://docs.airlock.com/iam/latest/sql-scripts/schema/mariadb/create-medusa-schema.sql
 
 podman exec -e MYSQL_PWD="123456" -i mariadb   mariadb -u airlockiam airlockiam < ressources/create-medusa-schema.sql
 ```
@@ -236,7 +236,7 @@ podman exec -e MYSQL_PWD="123456" -i mariadb   mariadb -u airlockiam airlockiam 
 ### 4. Create Admin User
 
 ```bash
-curl -fLo ressources/insert-admin.sql   https://docs.airlock.com/iam/latest/sql-scripts/schema/mariadb/insert-admin.sql
+curl -fLo ressources/insert-admin.sql  -b cookies -c cookies  https://docs.airlock.com/iam/latest/sql-scripts/schema/mariadb/insert-admin.sql
 
 podman exec -e MYSQL_PWD="123456" -i mariadb   mariadb -u airlockiam airlockiam < ressources/insert-admin.sql
 ```
