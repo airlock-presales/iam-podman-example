@@ -12,8 +12,8 @@ It is intended for **partners, engineers, and customers** who want to:
 
 ⚠️ This setup was built and tested on **Fedora 43 with SELinux enabled**.
 
-- If SELinux is not enabled, remove the `:Z` option in volumes.
-- For Windows environments, use the separate guide: `README-Windows.md`.
+- If SELinux is not enabled, remove the `:Z` option from the volumes.
+- For Windows environments, use the separate guide: [README-Windows](README-Windows.md).
 
 ---
 
@@ -22,7 +22,7 @@ It is intended for **partners, engineers, and customers** who want to:
 - **Podman Desktop**  
    ➜ Install from: https://podman-desktop.io
 - A valid __Airlock IAM Quay repository account__  
-   ➜ Documentation: https://docs.airlock.com/iam/latest/index/1589475710428.html#Pulling_the_IAM_image_from_an_image_repository
+   ➜ [Documentation on Quay Access](https://docs.airlock.com/iam/latest/index/1589475710428.html#Pulling_the_IAM_image_from_an_image_repository)
 
 ---
 
