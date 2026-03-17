@@ -135,6 +135,7 @@ podman unshare chown -R 1000:0 ~/ContainerDataFolder/iam
 podman create   \
   --name mariadb   \
   --pod iam   \
+  --replace  \
   -e MARIADB_ROOT_PASSWORD="ND+w\Y2CWvW}>gn-s)H_"   \
   -v ~/ContainerDataFolder/mariadb:/var/lib/mysql:Z   \
   docker.io/library/mariadb:11.8.3-ubi
@@ -149,15 +150,16 @@ podman create   \
   --name airlock-iam   \
   --pod iam   \
   --memory 4g   \
+  --replace  \
   -e IAM_DB_DRIVER_CLASS=org.mariadb.jdbc.Driver   \
   -e IAM_DB_URL=jdbc:mariadb://localhost:3306/airlockiam   \
   -e IAM_DB_USER=airlockiam   \
   -e IAM_DB_PASSWORD=123456   \
-  -e IAM_MODULES=adminapp   \
+  -e IAM_MODULES=adminapp,loginapp   \
   -e TZ=Europe/Berlin   \
   -e IAM_JAVA_OPTS='-XX:MaxRAMPercentage=50'   \
   -v ~/ContainerDataFolder/iam:/home/airlock/iam:Z   \
-  quay.io/airlock/iam:8.5.0   \
+  quay.io/airlock/iam:8.5.1   \
   run -i auth
 ```
 
